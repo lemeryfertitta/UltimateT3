@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["luke <luke.emery-fertitta@locusenergy.com>"]
 
 [dependencies]
-piston_window = "0.70.0"
+piston_window = "*"

@@ -80,12 +80,11 @@ fn draw_pieces(board_pieces : &game::Board, draw_state : DrawState, transform : 
 fn main() {
     let mut window: PistonWindow =
         WindowSettings::new("Super Tic-Tac-Toe", [SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32])
-            .opengl(OpenGL::V4_1)
             .exit_on_esc(true).build().unwrap();
     let mut cursor = [0.0, 0.0];
     let mut game_state = game::GameState::new() ;
     while let Some(event) = window.next() {
-        window.draw_2d(&event, | context, graphics | {
+        window.draw_2d(&event, | context, graphics, _device | {
             clear(WHITE, graphics);
             let window_transform = context.transform.scale(SCREEN_WIDTH, SCREEN_HEIGHT);
             let board_scalar = 1.0 / game::BOARD_LENGTH as f64;
@@ -101,6 +100,15 @@ fn main() {
             }
             draw_board(context.draw_state, window_transform, graphics);
             draw_pieces(&game_state.meta_pieces, context.draw_state, board_transform, graphics);
+            if game_state.game_over {
+                let piece_transform = window_transform
+                    .scale(0.6, 0.6)
+                    .trans(0.33, 0.33);
+                match game_state.turn {
+                    game::Piece::Nought => draw_nought(context.draw_state, piece_transform, graphics),
+                    game::Piece::Cross => draw_cross(context.draw_state, piece_transform, graphics),
+                }
+            }
         });
         if let Some(Button::Mouse(_button)) = event.release_args() {
             game_state.request_action(game::Coordinates {
@@ -108,6 +116,6 @@ fn main() {
                 y: (cursor[1] * game::GAME_LENGTH as f64 / SCREEN_HEIGHT) as usize,
             });
         }
-        event.mouse_cursor(|x, y| { cursor = [x, y]; });
+        event.mouse_cursor(|pos| { cursor = [pos[0], pos[1]]; });
     }
 }
