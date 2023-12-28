@@ -1,7 +1,12 @@
 [package]
-name = "rust-game"
+name = "UltimateT3"
 version = "0.1.0"
-authors = ["luke <luke.emery-fertitta@locusenergy.com>"]
+authors = ["Luke Emery-Fertitta <lemeryfertitta@gmail.com>"]
+edition = "2021"
 
 [dependencies]
-piston_window = "*"
+env_logger = "*"
+futures-util = "*"
+log = "*"
+tokio = { version = "1.35.1", features = ["full"] }
+tokio-tungstenite = "*"
