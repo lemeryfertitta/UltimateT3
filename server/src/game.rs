@@ -1,26 +1,30 @@
-pub const BOARD_LENGTH : usize = 3;
-pub const GAME_LENGTH : usize = BOARD_LENGTH * BOARD_LENGTH;
+// extern crate serde;
+// extern crate rmp_serde;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+pub const BOARD_LENGTH: usize = 3;
+pub const GAME_LENGTH: usize = BOARD_LENGTH * BOARD_LENGTH;
+
+#[derive(Copy, Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct Coordinates {
-    pub x : usize,
-    pub y : usize,
+    pub x: usize,
+    pub y: usize,
 }
 
 impl Coordinates {
-
     fn to_meta(&self) -> Coordinates {
         return Coordinates {
             x: self.x / BOARD_LENGTH,
             y: self.y / BOARD_LENGTH,
-        }
+        };
     }
 
     fn to_local(&self) -> Coordinates {
         return Coordinates {
             x: self.x % BOARD_LENGTH,
             y: self.y % BOARD_LENGTH,
-        }
+        };
     }
 
     fn on_diagonal_00(&self) -> bool {
@@ -30,12 +34,12 @@ impl Coordinates {
     fn on_diagonal_02(&self) -> bool {
         return match (self.x, self.y) {
             (0, 2) | (1, 1) | (2, 0) => true,
-            _ => false
-        }
+            _ => false,
+        };
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize)]
 pub enum Piece {
     Cross,
     Nought,
@@ -43,10 +47,9 @@ pub enum Piece {
 
 pub type Board = [[Option<Piece>; BOARD_LENGTH]; BOARD_LENGTH];
 
-
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Serialize)]
 pub struct GameState {
-    pub meta_coords_restriction : Option<Coordinates>,
+    pub meta_coords_restriction: Option<Coordinates>,
     pub meta_pieces: Board,
     pub pieces: [[Board; BOARD_LENGTH]; BOARD_LENGTH],
     pub turn: Piece,
@@ -54,7 +57,6 @@ pub struct GameState {
 }
 
 impl GameState {
-
     pub fn new() -> GameState {
         return GameState {
             meta_coords_restriction: None,
@@ -62,13 +64,13 @@ impl GameState {
             pieces: [[[[None; BOARD_LENGTH]; BOARD_LENGTH]; BOARD_LENGTH]; BOARD_LENGTH],
             turn: Piece::Nought,
             game_over: false,
-        }
+        };
     }
 
-    pub fn request_action(&mut self, global_coords : Coordinates) {
+    pub fn request_action(&mut self, global_coords: Coordinates) {
         if self.game_over {
             println!("Game over");
-            return
+            return;
         }
         let meta_coords = global_coords.to_meta();
         if let Some(coords) = self.meta_coords_restriction {
@@ -84,8 +86,12 @@ impl GameState {
                 match self.pieces[meta_coords.x][meta_coords.y][local_coords.x][local_coords.y] {
                     Some(piece) => println!("Tile already taken by {:?}", piece),
                     None => {
-                        self.pieces[meta_coords.x][meta_coords.y][local_coords.x][local_coords.y] = Some(self.turn);
-                        if self.move_wins_board(self.pieces[meta_coords.x][meta_coords.y], local_coords) {
+                        self.pieces[meta_coords.x][meta_coords.y][local_coords.x][local_coords.y] =
+                            Some(self.turn);
+                        if self.move_wins_board(
+                            self.pieces[meta_coords.x][meta_coords.y],
+                            local_coords,
+                        ) {
                             self.meta_pieces[meta_coords.x][meta_coords.y] = Some(self.turn);
                             if self.move_wins_board(self.meta_pieces, meta_coords) {
                                 println!("Game over! {:?} wins", self.turn);
@@ -93,10 +99,14 @@ impl GameState {
                                 return;
                             }
                         }
-                        self.meta_coords_restriction = if self.board_is_open(local_coords) { Some(local_coords) } else { None };
+                        self.meta_coords_restriction = if self.board_is_open(local_coords) {
+                            Some(local_coords)
+                        } else {
+                            None
+                        };
                         self.turn = match self.turn {
                             Piece::Nought => Piece::Cross,
-                            Piece::Cross => Piece::Nought
+                            Piece::Cross => Piece::Nought,
                         }
                     }
                 }
@@ -104,7 +114,7 @@ impl GameState {
         }
     }
 
-    fn board_is_open(&self, meta_coords : Coordinates) -> bool {
+    fn board_is_open(&self, meta_coords: Coordinates) -> bool {
         if self.meta_pieces[meta_coords.x][meta_coords.y].is_none() {
             for column in self.pieces[meta_coords.x][meta_coords.y].iter() {
                 for piece_option in column.iter() {
@@ -117,9 +127,10 @@ impl GameState {
         return false;
     }
 
-    fn move_wins_board(&self, board : Board, coords : Coordinates) -> bool {
+    fn move_wins_board(&self, board: Board, coords: Coordinates) -> bool {
         let (mut row_win, mut column_win) = (true, true);
-        let (mut diagonal_00_win, mut diagonal_02_win) = (coords.on_diagonal_00(), coords.on_diagonal_02());
+        let (mut diagonal_00_win, mut diagonal_02_win) =
+            (coords.on_diagonal_00(), coords.on_diagonal_02());
         for index in 0..BOARD_LENGTH {
             if row_win {
                 row_win = board[coords.x][index] == Some(self.turn);
