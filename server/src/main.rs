@@ -9,7 +9,7 @@ use std::{
 };
 
 use futures_channel::mpsc::{unbounded, UnboundedSender};
-use futures_util::{future, pin_mut, stream::TryStreamExt, StreamExt};
+use futures_util::{future, pin_mut, stream::TryStreamExt, SinkExt, StreamExt};
 
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::tungstenite::protocol::Message;
@@ -36,12 +36,26 @@ async fn handle_connection(
     let (tx, rx) = unbounded();
     peer_map.lock().unwrap().insert(addr, tx);
 
-    let (outgoing, incoming) = ws_stream.split();
+    let (mut outgoing, incoming) = ws_stream.split();
+
+    let initial_game_state = shared_game_state.lock().unwrap().clone();
+    // let (tx2, rx2) = unbounded();
+    // tx2.clone()
+    //     .unbounded_send(Message::Text(
+    //         serde_json::to_string(&initial_game_state).unwrap(),
+    //     ))
+    //     .unwrap();
 
     // let piece_msg = match piece {
     //     Some(piece) => Message::Text(serde_json::to_string(&piece).unwrap()),
     //     None => Message::Text("".to_string()),
-    // };
+    // };'
+    outgoing
+        .send(Message::Text(
+            serde_json::to_string(&initial_game_state).unwrap(),
+        ))
+        .await
+        .unwrap();
 
     let broadcast_incoming = incoming.try_for_each(|msg| {
         println!(

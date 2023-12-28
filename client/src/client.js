@@ -1,7 +1,7 @@
 const BOARD_SIZE = 9;
 const PIECE_BUFFER = 0.1;
 
-function getLine(x1, y1, x2, y2, strokeWidth, strokeDasharray) {
+function getLine(x1, y1, x2, y2, strokeWidth) {
   const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.setAttribute("x1", x1);
   line.setAttribute("y1", y1);
@@ -9,8 +9,6 @@ function getLine(x1, y1, x2, y2, strokeWidth, strokeDasharray) {
   line.setAttribute("y2", y2);
   line.setAttribute("stroke", "black");
   line.setAttribute("stroke-width", strokeWidth);
-  line.setAttribute("stroke-linecap", "round");
-  line.setAttribute("stroke-dasharray", strokeDasharray);
   return line;
 }
 
@@ -18,26 +16,11 @@ function drawBoard() {
   const gameSvg = document.getElementById("svg-game");
 
   // grid lines
-  for (let i = 1; i < BOARD_SIZE; i++) {
-    const strokeWidth = i % 3 === 0 ? 0.1 : 0.03;
-    const strokeDasharray = i % 3 === 0 ? 0 : 0.1;
-    const horizontalLine = getLine(
-      i,
-      0,
-      i,
-      BOARD_SIZE,
-      strokeWidth,
-      strokeDasharray
-    );
+  for (let i = 0; i < BOARD_SIZE + 1; i++) {
+    const strokeWidth = i % 3 === 0 ? 0.05 : 0.01;
+    const horizontalLine = getLine(i, 0, i, BOARD_SIZE, strokeWidth);
     gameSvg.appendChild(horizontalLine);
-    const verticalLine = getLine(
-      0,
-      i,
-      BOARD_SIZE,
-      i,
-      strokeWidth,
-      strokeDasharray
-    );
+    const verticalLine = getLine(0, i, BOARD_SIZE, i, strokeWidth);
     gameSvg.appendChild(verticalLine);
   }
 
@@ -49,16 +32,18 @@ function drawBoard() {
         "rect"
       );
       square.id = `square-${x}-${y}`;
-      square.setAttribute("x", x);
-      square.setAttribute("y", y);
-      square.setAttribute("width", 1);
-      square.setAttribute("height", 1);
+      square.setAttribute("x", x + PIECE_BUFFER / 2);
+      square.setAttribute("y", y + PIECE_BUFFER / 2);
+      square.setAttribute("width", 1 - PIECE_BUFFER);
+      square.setAttribute("height", 1 - PIECE_BUFFER);
+      square.setAttribute("data-x", x);
+      square.setAttribute("data-y", y);
       square.setAttribute("fill", "black");
       square.setAttribute("opacity", 0);
       square.addEventListener("click", (event) => {
         requestAction(
-          event.target.x.baseVal.value,
-          event.target.y.baseVal.value
+          event.target.getAttribute("data-x"),
+          event.target.getAttribute("data-y")
         );
       });
       gameSvg.appendChild(square);
@@ -74,7 +59,7 @@ function drawNought(x, y, size) {
   circle.id = `piece-${x}-${y}-${size}`;
   circle.setAttribute("cx", x * size + size / 2);
   circle.setAttribute("cy", y * size + size / 2);
-  circle.setAttribute("r", (size - PIECE_BUFFER * size) / 2);
+  circle.setAttribute("r", (size - 2 * PIECE_BUFFER * size) / 2);
   circle.setAttribute("fill", "none");
   circle.setAttribute("stroke", "black");
   circle.setAttribute("stroke-width", 0.03 * size);
@@ -87,16 +72,14 @@ function drawCross(x, y, size) {
     (y + PIECE_BUFFER) * size,
     (x + (1 - PIECE_BUFFER)) * size,
     (y + (1 - PIECE_BUFFER)) * size,
-    0.03 * size,
-    0
+    0.03 * size
   );
   const line2 = getLine(
     (x + (1 - PIECE_BUFFER)) * size,
     (y + PIECE_BUFFER) * size,
     (x + PIECE_BUFFER) * size,
     (y + (1 - PIECE_BUFFER)) * size,
-    0.03 * size,
-    0
+    0.03 * size
   );
   const lineGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
   lineGroup.id = `piece-${x}-${y}-${size}`;
@@ -142,7 +125,15 @@ function drawPieces(gameState) {
           ) {
             square.setAttribute("fill", "green");
             square.setAttribute("opacity", 0.5);
+            square.onmouseover = function (event) {
+              event.target.setAttribute("opacity", 1);
+            };
+            square.onmouseout = function (event) {
+              event.target.setAttribute("opacity", 0.5);
+            };
           } else {
+            square.onmouseover = null;
+            square.onmouseout = null;
             square.setAttribute("opacity", 0);
           }
         }
@@ -152,8 +143,10 @@ function drawPieces(gameState) {
 }
 
 function requestAction(x, y) {
-  console.log("Sending", JSON.stringify({ x, y }));
-  socket.send(JSON.stringify({ x, y }));
+  let xNum = Number(x);
+  let yNum = Number(y);
+  console.log("Sending", JSON.stringify({ xNum, yNum }));
+  socket.send(JSON.stringify({ x: xNum, y: yNum }));
 }
 
 const socket = new WebSocket("ws://127.0.0.1:8080");
